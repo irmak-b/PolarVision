@@ -128,7 +128,9 @@ sequenceDiagram
 - PyTorch (CUDA-accelerated inference)
 - JSON-backed report store
 
+---
 
+## 📂 Project Structure
 
 PolarVision/
 ├── polarvision-backend/
@@ -229,4 +231,4 @@ Open `http://localhost:3000`.
 <p align="center">Built with 🧊 for SDG 12 & SDG 15</p>
 ---
 
-## 📂 Project Structure
+
