@@ -102,11 +102,13 @@ sequenceDiagram
     A->>DB: status → clean
 ```
 
-<br>
-
+</n>
+<p align="center">
+ 
 <img width="680" height="182" alt="döngü drawio" src="https://github.com/user-attachments/assets/15774e0f-88c1-4fef-99ad-f34298496995" />
 
-<br>
+</p>
+</n>
 
 ---
 
