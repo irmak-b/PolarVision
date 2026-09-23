@@ -1,40 +1,52 @@
 # main.py
 import io
-from fastapi import FastAPI, File, UploadFile
+from typing import List, Optional
+
+import torch
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
-from ultralytics import YOLO
-from risk_table import RISK_TABLE, DEFAULT
-from typing import List, Optional
-from fastapi import HTTPException
 from pydantic import BaseModel
-import reports
+from ultralytics import YOLO
 
-MODEL_PATH = "weights/best_model.pt"   
+import reports
+from risk_table import RISK_TABLE, DEFAULT
+
+MODEL_PATH = "weights/best_model.pt"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 CONF = 0.4
-IMGSZ = 800            # küçük nesneler için 640'tan büyük; 640 ile karşılaştır
-FIRE_MIN_CONF = 0.6    # "olası" cam uyarısı için asgari güven
+IMGSZ = 800            # bigger than 640 for small objects; compare against 640
+FIRE_MIN_CONF = 0.6    # minimum confidence for a "possible" glass/fire alert
+
 
 def scene_score(detections):
     if not detections:
         return 0
     scores = sorted((d["score"] for d in detections), reverse=True)
-    return min(100, scores[0] + 5 * (len(scores) - 1))   # high risk items are more important than many low risk items
+    return min(100, scores[0] + 5 * (len(scores) - 1))  # high risk items matter more than many low risk ones
+
 
 app = FastAPI(title="PolarVision API")
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"],
-                   allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        # "https://polar-vision-xxxx.vercel.app",  # Vercel deploy'undan sonra buraya kendi adresini yaz
+    ],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 model = YOLO(MODEL_PATH)
-model.predict(Image.new("RGB", (640, 640)), device=0, verbose=False)  # warm up the model
+model.predict(Image.new("RGB", (640, 640)), device=DEVICE, verbose=False)  # warm up the model
 
 
 @app.post("/detect")
-async def detect(file: UploadFile = File(...), conf: float = 0.3):
+async def detect(file: UploadFile = File(...), conf: float = CONF):
     img = Image.open(io.BytesIO(await file.read())).convert("RGB")
     result = model.predict(
-        img, device=0, conf=conf, imgsz=IMGSZ,
-        agnostic_nms=True,     # class-agnostic NMS (e.g. for overlapping bottle and bottle cap)
+        img, device=DEVICE, conf=conf, imgsz=IMGSZ,
+        agnostic_nms=True,  # class-agnostic NMS (e.g. for overlapping bottle and bottle cap)
         verbose=False,
     )[0]
 
@@ -61,9 +73,11 @@ async def detect(file: UploadFile = File(...), conf: float = 0.3):
         "detections": detections,
     }
 
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
 
 class ReportIn(BaseModel):
     lat: float
@@ -72,6 +86,7 @@ class ReportIn(BaseModel):
     risk_score: int = 0
     fire_alert: Optional[str] = None
     note: str = ""
+
 
 class CleanIn(BaseModel):
     method: str = "self"  # "self" | "volunteers" | "municipality"
@@ -85,6 +100,7 @@ def create_report(r: ReportIn):
 @app.get("/reports")
 def get_reports():
     return reports.list_reports()
+
 
 @app.patch("/reports/{report_id}/clean")
 def clean_report(report_id: str, body: CleanIn):
