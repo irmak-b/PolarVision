@@ -132,6 +132,7 @@ sequenceDiagram
 
 ## 📂 Project Structure
 
+```
 PolarVision/
 ├── polarvision-backend/
 │ ├── main.py # FastAPI app: /detect, /reports, /health
@@ -151,7 +152,7 @@ PolarVision/
 └── FloatingBear.tsx # scroll-driven polar bear animation
 
 
-
+```
 
 
 ---
