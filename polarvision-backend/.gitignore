@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+runs/
+weights/
+data/
+*.pt
+sonuc_*.jpg
