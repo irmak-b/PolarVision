@@ -6,7 +6,7 @@ venv/
 **/venv/
 __pycache__/
 **/__pycache__/
-*.pt
+#*.pt
 *.onnx
 .env
 .env.local
